@@ -1,148 +1,140 @@
-import pygame
-import sys
-import random
+from function import *
 
-# Инициализация Pygame
-pygame.init()
+window = pygame.display.set_mode((setting_win["WIDTH"], setting_win["HEIGHT"]))
+pygame.display.set_caption("КОСМІЧНИЙ ШУТЕР")
 
-# Константы
-SCREEN_WIDTH = 400
-SCREEN_HEIGHT = 400
-PLAYER_SIZE = 50
-ENEMY_RADIUS = 20
-PLAYER_SPEED = 5
-BULLET_SPEED = 10
-ENEMY_SPEED = 3
 
-# Цвета
-WHITE = (255, 255, 255)
-RED = (255, 0, 0)
 
-# Создание экрана
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Простая игра")
+def run():
+    game = True
+    which_window = 1
+    start_time = 0
+    end_time = 0
+    start_time_boss = 0
+    menu = False
 
-# Игрок
-player = pygame.Rect(175, 175, PLAYER_SIZE, PLAYER_SIZE)
-player_health = 3
+    hero = Hero(setting_win["WIDTH"] // 2 - setting_hero["WIDTH"] // 2,
+                setting_win["HEIGHT"] - setting_hero["HEIGHT"] -20,
+                setting_hero["WIDTH"],
+                setting_hero["HEIGHT"],
+                image= hero_image_list,
+                hp = setting_hero["HP"])
+    
+    boss = Boss(setting_win["WIDTH"] // 2 - setting_boss["WIDTH"] // 2,
+                - setting_boss["HEIGHT"], 
+                setting_boss["WIDTH"],
+                setting_boss["HEIGHT"],
+                image= boss_image_list)
 
-# Пули игрока
-player_bullets = []
 
-# Враги
-enemies = []
+    bg = Background(bg_image, 0.5)
 
-# Большой враг
-big_enemy = pygame.Rect(
-    SCREEN_WIDTH, SCREEN_HEIGHT // 2 - ENEMY_RADIUS * 5, ENEMY_RADIUS * 10, ENEMY_RADIUS * 10
-)
-big_enemy_health = 5
-big_enemy_active = False
+    clock = pygame.time.Clock()
+    
+    hp_bar = pygame.Rect(10, 10, 200, 15)
+    hp_bar_white = pygame.Rect(10,10,200,15)
 
-# Счетчики
-enemies_killed = 0
-big_enemy_hits = 0
+    font_win_lose = pygame.font.Font(None, 50)
+    rect_start = pygame.Rect(400, 200, 200, 60)
+    rect_lose = pygame.Rect(400, 300, 200, 60)
 
-# Функция для создания врагов
-def create_enemy():
-    enemy = pygame.Rect(
-        SCREEN_WIDTH,
-        random.randint(0, SCREEN_HEIGHT - ENEMY_RADIUS * 2),
-        ENEMY_RADIUS * 2,
-        ENEMY_RADIUS * 2,
-    )
-    enemies.append(enemy)
+    while game:
+        events = pygame.event.get()
+        if which_window == 1:
+            bg.move(window)
 
-# Основной игровой цикл
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+            hp_bar.width = (200 / setting_hero["HP"] * hero.HP)
+            pygame.draw.rect(window, (255, 255, 255), hp_bar_white)
+            pygame.draw.rect(window, (255, 20, 20), hp_bar)
 
-    # Управление игроком
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT]:
-        player.x -= PLAYER_SPEED
-    if keys[pygame.K_RIGHT]:
-        player.x += PLAYER_SPEED
-    if keys[pygame.K_UP]:
-        player.y -= PLAYER_SPEED
-    if keys[pygame.K_DOWN]:
-        player.y += PLAYER_SPEED
-    if keys[pygame.K_q]:
-        bullet = pygame.Rect(player.centerx - 5, player.centery - 5, 10, 10)
-        player_bullets.append(bullet)
 
-    # Генерация врагов
-    if len(enemies) < 5 and not big_enemy_active:
-        create_enemy()
+            hero.move(window)
+            for bullet in hero.BULLET_LIST:
+                bullet.move_hero(hero, window, boss)
+            
+            if hero.HP == 0:
+                menu = True
+            
 
-    # Обновление пуль игрока
-    for bullet in player_bullets:
-        bullet.x += BULLET_SPEED
-        if bullet.x > SCREEN_WIDTH:
-            player_bullets.remove(bullet)
+            end_time = pygame.time.get_ticks()
+            if end_time - start_time > 2000 and not boss.LIVE:
+                bot_list.append(Bot(randint(0, setting_win["WIDTH"] - setting_bot["WIDTH"]),
+                                            - setting_bot["HEIGHT"],
+                                            setting_bot["WIDTH"],
+                                            setting_bot["HEIGHT"],
+                                            image= bot_image_list))
+                start_time = end_time
+            for bot in bot_list:
+                bot.move(window, hero)
+            for bullet in bullet_bot_boss_list:
+                bullet.move_bot_boss(hero,window)
+                
 
-    # Проверка попадания пуль игрока во врагов
-    for bullet in player_bullets[:]:
-        for enemy in enemies[:]:
-            if bullet.colliderect(enemy):
-                player_bullets.remove(bullet)
-                enemies.remove(enemy)
-                enemies_killed += 1
 
-    # Управление большим врагом
-    if enemies_killed >= 10:
-        big_enemy_active = True
-        if big_enemy.colliderect(player):
-            player_health -= 1
-        if big_enemy_active and big_enemy_hits >= 5:
-            big_enemy_active = False
-            big_enemy = pygame.Rect(
-                SCREEN_WIDTH,
-                SCREEN_HEIGHT // 2 - ENEMY_RADIUS * 5,
-                ENEMY_RADIUS * 10,
-                ENEMY_RADIUS * 10,
-            )
-            enemies_killed = 0
-            big_enemy_hits = 0
+            if end_time - start_time_boss > 10000:
+                boss.LIVE = True
+                boss.move(window, hero)
+                if boss.LIVE == False:
+                    start_time_boss = end_time
+                
 
-    # Проверка попадания пуль игрока в большого врага
-    for bullet in player_bullets[:]:
-        if big_enemy.colliderect(bullet):
-            player_bullets.remove(bullet)
-            big_enemy_hits += 1
-            if big_enemy_hits >= 5:
-                big_enemy_health -= 1
 
-    # Проверка на окончание игры
-    if player_health <= 0:
-        font = pygame.font.Font(None, 36)
-        game_over_text = font.render("Игра окончена!", True, RED)
-        screen.blit(game_over_text, (150, 150))
+
+
+            if menu == True:
+                pygame.draw.rect(window, (31,58,90), rect_start)
+                pygame.draw.rect(window, (31,58,90), rect_lose)
+                render_start = font_win_lose.render("START", True, (255, 255, 255))
+                render_lose = font_win_lose.render("END", True, (255, 255, 255))
+                window.blit(render_start, (rect_start.x + 48, rect_start.y + 13))
+                window.blit(render_lose, (rect_start.x + 64, rect_lose.y + 13))
+                for event in events:
+                    if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                        x, y = event.pos
+                        if rect_start.collidepoint(x, y):
+                            hero.HP = setting_hero["HP"]
+                            hero.x = setting_win["WIDTH"] // 2 - hero.width // 2
+                            hero.LVL = 1
+                            if boss.LIVE == True:
+                                boss.ANIMATION = True
+                                hero.LVL = 0
+
+                            menu = False
+                            for i in range(len(bot_list)):
+                                bot_list.pop(0)
+                            for i in range(len(bullet_bot_boss_list)):
+                                bullet_bot_boss_list.pop(0)
+                        if rect_lose.collidepoint(x, y):
+                            game = False
+
+
+
+            for event in events:
+                if event.type == boss_shoot and boss.LIVE:
+                    bullet_bot_boss_list.append(Bullet(boss.centerx + 50, boss. bottom, 10, 20, color= (255, 10, 0)))
+                    bullet_bot_boss_list.append(Bullet(boss.centerx + -50, boss. bottom, 10, 20, color= (0, 255, 0)))
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_a:
+                        hero.MOVE["LEFT"] = True
+                    if event.key == pygame.K_d:
+                        hero.MOVE["RIGHT"] = True
+                    if event.key == pygame.K_SPACE:
+                        hero.BULLET_LIST.append(Bullet(hero.centerx - 5, hero.y, 10, 20, color= (250, 20, 20)))
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_a:
+                        hero.MOVE["LEFT"] = False
+                    if event.key == pygame.K_d:
+                        hero.MOVE["RIGHT"] = False
+
+
+        for event in events:
+            if event.type == pygame.QUIT:
+                game = False
+
+
+        clock.tick(setting_win["FPS"])
         pygame.display.flip()
-        pygame.time.delay(2000)
-        running = False
 
-    # Рисование
-    screen.fill(WHITE)
-    pygame.draw.rect(screen, RED, player)
-    for bullet in player_bullets:
-        pygame.draw.rect(screen, RED, bullet)
-    for enemy in enemies:
-        pygame.draw.circle(screen, RED, enemy.center, ENEMY_RADIUS)
-    if big_enemy_active:
-        pygame.draw.circle(screen, RED, big_enemy.center, big_enemy.width // 2)
 
-    # Отображение здоровья игрока
-    font = pygame.font.Font(None, 24)
-    health_text = font.render(f"Здоровье: {player_health}", True, RED)
-    screen.blit(health_text, (10, 10))
 
-    pygame.display.flip()
-    pygame.time.delay(30)
-
-# Завершение игры
-pygame.quit()
-sys.exit()
+run()
