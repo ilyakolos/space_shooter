@@ -50,9 +50,9 @@ class Hero(Sprite):
     
 
     def move(self, window):
-        if self.MOVE["LEFT"] == True:
+        if self.MOVE["LEFT"] == True and self.x > 0:
             self.x -= self.SPEED
-        if self.MOVE["RIGHT"] == True:
+        if self.MOVE["RIGHT"] == True and self.right < setting_win["WIDTH"]:
             self.x += self.SPEED
         window.blit(self.IMAGE,(self.x, self.y))
         self.move_image()
@@ -128,6 +128,11 @@ class Bullet(pygame.Rect):
         if index != -1:
             bot_list[index].HP -= 1
             if bot_list[index].HP == 0:
+                buff_random = randint(1, 100)
+                if buff_random >= 1 and buff_random <= 50:
+                    buff_random = randint(1, 100)
+                    if buff_random >= 1 and buff_random <= 20:
+                        buff_list.append(Buff(bot_list[index].x, bot_list[index].y, 30, 30, buff= "HP", image= buff_hp_image))
                 bot_list.pop(index)
             hero.BULLET_LIST.remove(self)
             return 0
@@ -151,3 +156,19 @@ class Bullet(pygame.Rect):
             return 0
         self.y += self.SPEED
         pygame.draw.rect(window, self.COLOR, self)
+
+class Buff(pygame.Rect):
+    def __init__(self, x, y, width, height, buff= None, image= None, speed = 1):
+        super().__init__(x, y, width, height)
+        self.BUFF = buff
+        self.IMAGE = image
+        self.SPEED = speed
+    def move_buff(self, window, hero):
+        self.y += self.SPEED
+        window.blit(self.IMAGE, (self.x, self.y))
+        if self.colliderect(hero):
+            if self.BUFF == "HP":
+                hero.HP += 1
+            buff_list.remove(self)
+            return 0
+        

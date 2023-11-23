@@ -55,6 +55,9 @@ def run():
             if hero.HP == 0:
                 menu = True
             
+            for buff in buff_list:
+                buff.move_buff(window, hero) 
+
 
             end_time = pygame.time.get_ticks()
             if end_time - start_time > 2000 and not boss.LIVE:
@@ -71,7 +74,7 @@ def run():
                 
 
 
-            if end_time - start_time_boss > 10000:
+            if end_time - start_time_boss > 25000:
                 boss.LIVE = True
                 boss.move(window, hero)
                 if boss.LIVE == False:
@@ -119,7 +122,7 @@ def run():
                     if event.key == pygame.K_d:
                         hero.MOVE["RIGHT"] = True
                     if event.key == pygame.K_SPACE:
-                        hero.BULLET_LIST.append(Bullet(hero.centerx - 5, hero.y, 10, 20, color= (250, 20, 20)))
+                        hero.BULLET_LIST.append(Bullet(hero.centerx - 5, hero.y, 10, 20, color= (1, 128, 255)))
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_a:
                         hero.MOVE["LEFT"] = False
